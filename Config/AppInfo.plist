@@ -6,6 +6,8 @@
 	<string>6755790079</string>
 	<key>AppsFlyerDevKey</key>
 	<string>96c068fc-bb38-4ab0-a5f3-999273071293</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
 	<key>CFBundleDisplayName</key>
 	<string>Wild Moment</string>
 	<key>CFBundleExecutable</key>
