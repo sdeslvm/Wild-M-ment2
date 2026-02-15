@@ -1,0 +1,57 @@
+workflows:
+    ios-workflow:
+      name: iOS Workflow
+      environment:
+        groups:
+          - app_store_credentials # <-- (APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_PRIVATE_KEY)
+          - certificate_credentials # <-- (CERTIFICATE_PRIVATE_KEY)
+        vars:
+          XCODE_PROJECT: "WildMoment.xcodeproj"
+          XCODE_SCHEME: "WildMoment"
+          BUNDLE_ID: "com.wildmoment.whel"
+          APP_STORE_APPLE_ID: 6759050645
+        xcode: latest
+        cocoapods: default
+      triggering:
+        events:
+          - push
+          - tag
+          - pull_request
+        branch_patterns:
+          - pattern: 'develop'
+            include: true
+            source: true
+      scripts:
+        - name: Set up keychain
+          script: keychain initialize
+        - name: Fetch signing files
+          script: app-store-connect fetch-signing-files $BUNDLE_ID --type IOS_APP_STORE --platform=IOS --create --certificate-key-password='700700'
+        - name: Use system default keychain
+          script: keychain add-certificates
+        - name: Set up code signing
+          script: xcode-project use-profiles
+        - name: Increment build number
+          script: agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
+        - name: Build ipa
+          script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+      artifacts:
+        - build/ios/ipa/*.ipa
+        - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      publishing:
+        app_store_connect:
+            api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+            key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+            issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+            submit_to_testflight: true
+        email:
+            recipients:
+              - someEmail@rmail.com
+            notify:
+              success: true
+              failure: true
+        slack:
+            channel: '#builds'
+            notify_on_build_start: true
+            notify:
+              success: false
+              failure: false
