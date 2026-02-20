@@ -1,32 +1,32 @@
 
 import Foundation
 
-struct RemoteLinkParts: Decodable, Sendable {
-    let host: String
-    let path: String
+struct WildMomentRemoteLinkParts: Decodable, Sendable {
+    let wildMomentHost: String
+    let wildMomentPath: String
 
     private enum CodingKeys: String, CodingKey {
-        case host = "panic"
-        case path = "trank"
+        case wildMomentHost = "panic"
+        case wildMomentPath = "trank"
     }
 }
 
-struct BackendLinkResponse: Decodable, Sendable {
-    let domain: String
-    let tld: String
+struct WildMomentBackendLinkResponse: Decodable, Sendable {
+    let wildMomentDomain: String
+    let wildMomentTld: String
 
     private enum CodingKeys: String, CodingKey {
-        case domain = "panic"
-        case tld = "trank"
+        case wildMomentDomain = "panic"
+        case wildMomentTld = "trank"
     }
 
-    var finalURL: URL? {
-        guard !domain.isEmpty, !tld.isEmpty else { return nil }
-        return URL(string: "https://\(domain)\(tld)")
+    var wildMomentFinalURL: URL? {
+        guard !wildMomentDomain.isEmpty, !wildMomentTld.isEmpty else { return nil }
+        return URL(string: "https://\(wildMomentDomain)\(wildMomentTld)")
     }
 }
 
-enum LaunchOutcome: Sendable {
+enum WildMomentLaunchOutcome: Sendable {
     case showWeb(URL)
     case showStub
     case loading

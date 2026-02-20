@@ -3,19 +3,19 @@
 import SwiftUI
 import WebKit
 
-struct RootView: View {
-    @StateObject var viewModel: RootViewModel
-    @EnvironmentObject private var webCoordinator: WebViewCoordinator
+struct WildMomentRootView: View {
+    @StateObject var wildMomentViewModel: WildMomentRootViewModel
+    @EnvironmentObject private var wildMomentWebCoordinator: WildMomentWebViewCoordinator
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            content
+            wildMomentContent
         }
-        .onAppear { viewModel.start() }
+        .onAppear { wildMomentViewModel.wildMomentStart() }
     }
 
-    private static func isPaymentUrlString(_ urlString: String) -> Bool {
+    private static func wildMomentIsPaymentUrlString(_ urlString: String) -> Bool {
         let lowercased = urlString.lowercased()
         return lowercased.contains("paymentiq") ||
             lowercased.contains("payment") ||
@@ -24,20 +24,20 @@ struct RootView: View {
     }
 
     @ViewBuilder
-    private var content: some View {
-        switch viewModel.state {
+    private var wildMomentContent: some View {
+        switch wildMomentViewModel.wildMomentState {
         case .loading:
-            LoadingStateView()
+            WildMomentLoadingStateView()
         case .stub:
-            StubStateView(message: viewModel.errorMessage ?? "Nothing to show yet.", retry: viewModel.retry)
+            WildMomentStubStateView(message: wildMomentViewModel.wildMomentErrorMessage ?? "Nothing to show yet.", retry: wildMomentViewModel.wildMomentRetry)
         case .web(let url):
-            WebShellView(url: url)
+            WildMomentWebShellView(wildMomentUrl: url)
         case .failed:
-            StubStateView(message: "An error occurred. Please try again later.", retry: viewModel.retry)
+            WildMomentStubStateView(message: "An error occurred. Please try again later.", retry: wildMomentViewModel.wildMomentRetry)
         }
     }
 
-    private struct LoadingStateView: View {
+    private struct WildMomentLoadingStateView: View {
         var body: some View {
             ZStack {
                 LinearGradient(
@@ -60,7 +60,7 @@ struct RootView: View {
         }
     }
 
-    private struct StubStateView: View {
+    private struct WildMomentStubStateView: View {
         let message: String
         let retry: () -> Void
 
@@ -84,41 +84,76 @@ struct RootView: View {
         }
     }
 
-    private struct WebShellView: View {
-        @EnvironmentObject private var webCoordinator: WebViewCoordinator
-        @State private var presentedChildWebView: WKWebView?
-        @State private var presentedPaymentWebView: WKWebView?
-        @State private var dragOffset: CGSize = .zero
-        let url: URL
+    private struct WildMomentWebShellView: View {
+        @EnvironmentObject private var wildMomentWebCoordinator: WildMomentWebViewCoordinator
+        @State private var wildMomentPresentedChildWebView: WKWebView?
+        @State private var wildMomentPresentedPaymentWebView: WKWebView?
+        @State private var wildMomentDragOffset: CGSize = .zero
+        let wildMomentUrl: URL
+
+        private func wildMomentHandleChildWebViewChange(_ newValue: WKWebView?) {
+            print("🔄 Child WebView changed: \(newValue?.url?.absoluteString ?? "nil")")
+            print("🔄 Child WebView instance: \(newValue?.hashValue ?? 0)")
+            print("🔄 Payment WebView exists: \(wildMomentWebCoordinator.wildMomentPaymentWebView != nil)")
+            
+            // Если есть платежный WebView, но открывается обычный дочерний — закрываем платежный
+            if let paymentWebView = wildMomentWebCoordinator.wildMomentPaymentWebView, let newValue = newValue {
+                let childUrl = newValue.url?.absoluteString ?? ""
+                if !WildMomentRootView.wildMomentIsPaymentUrlString(childUrl) {
+                    print("⚠️ Payment WebView exists, closing to show child WebView")
+                    wildMomentWebCoordinator.wildMomentClosePaymentWebView()
+                } else {
+                    print("⚠️ Payment WebView exists, skipping child WebView presentation")
+                    wildMomentPresentedChildWebView = nil
+                    return
+                }
+            }
+            
+            // Закрываем обычный дочерний WebView если открывается платежный
+            if wildMomentWebCoordinator.wildMomentPaymentWebView != nil {
+                print("⚠️ Payment WebView opening, closing child WebView")
+                wildMomentPresentedChildWebView = nil
+                wildMomentWebCoordinator.wildMomentCloseChild()
+                return
+            }
+            
+            if let newValue = newValue, wildMomentPresentedChildWebView != newValue {
+                print("✅ Presenting new child WebView")
+                wildMomentPresentedChildWebView = newValue
+            } else if newValue == nil {
+                print("❌ Child WebView cleared")
+                wildMomentPresentedChildWebView = nil
+            }
+        }
 
         var body: some View {
-            let webShellView = WebViewContainer(url: url)
+            let wildMomentWebShellView = WildMomentWebViewContainer(wildMomentUrl: wildMomentUrl)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .offset(x: dragOffset.width, y: 0)
+                .offset(x: wildMomentDragOffset.width, y: 0)
                 .gesture(
                     DragGesture()
                         .onChanged { value in
                             // Свайп слева направо для возврата
-                            if value.translation.width > 0 && webCoordinator.canGoBack {
-                                dragOffset = value.translation
+                            if value.translation.width > 0 && wildMomentWebCoordinator.wildMomentCanGoBack {
+                                wildMomentDragOffset = value.translation
                             }
                         }
                         .onEnded { value in
                             // Если свайп достаточно сильный слева направо и можно вернуться назад
-                            if value.translation.width > 100 && webCoordinator.canGoBack {
+                            if value.translation.width > 100 && wildMomentWebCoordinator.wildMomentCanGoBack {
                                 withAnimation(.easeInOut(duration: 0.3)) {
-                                    dragOffset = CGSize(width: -UIScreen.main.bounds.width, height: 0)
+                                    wildMomentDragOffset = CGSize(width: -UIScreen.main.bounds.width, height: 0)
                                 }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                    webCoordinator.goBack()
+                                    wildMomentWebCoordinator.wildMomentGoBack()
                                     withAnimation(.spring()) {
-                                        dragOffset = .zero
+                                        wildMomentDragOffset = .zero
                                     }
                                 }
                             } else {
                                 // Возвращаем на место если свайп недостаточно сильный
                                 withAnimation(.spring()) {
-                                    dragOffset = .zero
+                                    wildMomentDragOffset = .zero
                                 }
                             }
                         }
@@ -127,65 +162,22 @@ struct RootView: View {
             return ZStack {
                 Color.black.ignoresSafeArea()
                 
-                webShellView
+                wildMomentWebShellView
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
                 // Удалены стрелки навигации по ТЗ - оставлен только свайп как основной метод
             }
-            .onChange(of: webCoordinator.childWebView) { newValue in
-                print("🔄 Child WebView changed: \(newValue?.url?.absoluteString ?? "nil")")
-                print("🔄 Child WebView instance: \(newValue?.hashValue ?? 0)")
-                print("🔄 Payment WebView exists: \(webCoordinator.paymentWebView != nil)")
-                
-                // Если есть платежный WebView, но открывается обычный дочерний — закрываем платежный
-                if let paymentWebView = webCoordinator.paymentWebView, let newValue = newValue {
-                    let childUrl = newValue.url?.absoluteString ?? ""
-                    if !RootView.isPaymentUrlString(childUrl) {
-                        print("⚠️ Payment WebView exists, closing to show child WebView")
-                        webCoordinator.closePaymentWebView()
-                    } else {
-                        print("⚠️ Payment WebView exists, skipping child WebView presentation")
-                        presentedChildWebView = nil
-                        return
-                    }
-                }
-                
-                if let newValue = newValue, presentedChildWebView != newValue {
-                    print("✅ Presenting new child WebView")
-                } else if newValue == nil {
-                    print("❌ Child WebView cleared")
-                    presentedChildWebView = nil
-                }
+        .onChange(of: wildMomentWebCoordinator.wildMomentChildWebView) { newValue in
+            wildMomentHandleChildWebViewChange(newValue)
         }
-        .onChange(of: webCoordinator.childWebView) { newValue in
-            print("🔄 Child WebView changed: \(newValue?.url?.absoluteString ?? "nil")")
-            print("🔄 Child WebView instance: \(newValue?.hashValue ?? 0)")
-            print("🔄 Payment WebView exists: \(webCoordinator.paymentWebView != nil)")
-            
-            // Закрываем обычный дочерний WebView если открывается платежный
-            if webCoordinator.paymentWebView != nil {
-                print("⚠️ Payment WebView opening, closing child WebView")
-                presentedChildWebView = nil
-                webCoordinator.closeChild()
-                return
-            }
-            
-            if let newValue = newValue, presentedChildWebView != newValue {
-                print("✅ Presenting new child WebView")
-                presentedChildWebView = newValue
-            } else if newValue == nil {
-                print("❌ Child WebView cleared")
-                presentedChildWebView = nil
-            }
-        }
-            .fullScreenCover(item: Binding<ChildWebViewWrapper?>(
+            .fullScreenCover(item: Binding<WildMomentChildWebViewWrapper?>(
                 get: { 
                     // Показываем только если нет платежного WebView
-                    if webCoordinator.paymentWebView != nil {
+                    if wildMomentWebCoordinator.wildMomentPaymentWebView != nil {
                         print("⚠️ Payment WebView exists, hiding child fullScreenCover")
                         return nil
                     }
-                    let wrapper = presentedChildWebView.map { ChildWebViewWrapper(webView: $0) }
+                    let wrapper = wildMomentPresentedChildWebView.map { WildMomentChildWebViewWrapper(webView: $0) }
                     print("📱 FullScreenCover get: \(wrapper != nil)")
                     if wrapper != nil {
                         print("📱 Showing child WebView: \(wrapper!.webView.url?.absoluteString ?? "unknown")")
@@ -195,34 +187,34 @@ struct RootView: View {
                 set: { _ in
                     print("📱 FullScreenCover set: dismissing")
                     // НЕ сбрасываем presentedChildWebView - пусть остается видимым
-                    // presentedChildWebView = nil
-                    // webCoordinator.closeChild()
+                    // wildMomentPresentedChildWebView = nil
+                    // wildMomentWebCoordinator.wildMomentCloseChild()
                 }
             )) { wrapper in
             // ВАЖНО: Простая обертка для WebView с уникальным id для пересоздания
             ZStack {
                 Color.black.ignoresSafeArea()  // ВАЖНО: Черный фон для safe area
                 
-                SimpleWebViewContainer(webView: wrapper.webView)
+                WildMomentSimpleWebViewContainer(webView: wrapper.webView)
                     .id(wrapper.webView.hashValue)
             }
         }
         .transaction { transaction in
             transaction.disablesAnimations = true
         }
-            .fullScreenCover(item: Binding<PaymentWebViewWrapper?>(
+            .fullScreenCover(item: Binding<WildMomentPaymentWebViewWrapper?>(
                 get: { 
-                    let wrapper = presentedPaymentWebView.map { PaymentWebViewWrapper(webView: $0) }
+                    let wrapper = wildMomentPresentedPaymentWebView.map { WildMomentPaymentWebViewWrapper(webView: $0) }
                     print("💳 Payment FullScreenCover get: \(wrapper != nil)")
                     return wrapper
                 },
                 set: { _ in
                     print("💳 Payment FullScreenCover set: dismissing")
-                    presentedPaymentWebView = nil
-                    webCoordinator.closePaymentWebView()
+                    wildMomentPresentedPaymentWebView = nil
+                    wildMomentWebCoordinator.wildMomentClosePaymentWebView()
                 }
             )) { wrapper in
-                PaymentWebViewContainer(webView: wrapper.webView)
+                WildMomentPaymentWebViewContainer(webView: wrapper.webView)
             }
         .transaction { transaction in
             transaction.disablesAnimations = true
@@ -230,7 +222,7 @@ struct RootView: View {
         }
     }
     
-    private struct ChildWebViewWrapper: Identifiable {
+    private struct WildMomentChildWebViewWrapper: Identifiable {
         let id: ObjectIdentifier
         let webView: WKWebView
         
@@ -240,32 +232,32 @@ struct RootView: View {
         }
     }
     
-    private struct ChildWebViewContainer: View {
+    private struct WildMomentChildWebViewContainer: View {
         let webView: WKWebView
-        @EnvironmentObject private var webCoordinator: WebViewCoordinator
+        @EnvironmentObject private var wildMomentWebCoordinator: WildMomentWebViewCoordinator
         @Environment(\.dismiss) private var dismiss
-        @State private var dragOffset: CGSize = .zero
+        @State private var wildMomentDragOffset: CGSize = .zero
         
         var body: some View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                ChildWebViewRepresentable(webView: webView)
+                WildMomentChildWebViewRepresentable(webView: webView)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .offset(x: dragOffset.width, y: 0)
+                    .offset(x: wildMomentDragOffset.width, y: 0)
                     .gesture(
                         DragGesture()
                             .onChanged { value in
                                 // Свайп справа налево для закрытия дочернего окна
                                 if value.translation.width < 0 {
-                                    dragOffset = value.translation
+                                    wildMomentDragOffset = value.translation
                                 }
                             }
                             .onEnded { value in
                                 // Если свайп достаточно сильный справа налево, закрываем окно
                                 if value.translation.width < -100 {
                                     withAnimation(.easeInOut(duration: 0.3)) {
-                                        dragOffset = CGSize(width: -UIScreen.main.bounds.width, height: 0)
+                                        wildMomentDragOffset = CGSize(width: -UIScreen.main.bounds.width, height: 0)
                                     }
                                     
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -274,7 +266,7 @@ struct RootView: View {
                                 } else {
                                     // Возвращаем на место если свайп недостаточно сильный
                                     withAnimation(.spring()) {
-                                        dragOffset = .zero
+                                        wildMomentDragOffset = .zero
                                     }
                                 }
                             }
@@ -282,13 +274,13 @@ struct RootView: View {
                 
                 // Удалены стрелки навигации по ТЗ - оставлен только свайп для закрытия дочернего окна
             }
-            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: dragOffset as CGSize)
+            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: wildMomentDragOffset as CGSize)
         }
     }
     
-    private struct SimpleWebViewContainer: UIViewRepresentable {
+    private struct WildMomentSimpleWebViewContainer: UIViewRepresentable {
         let webView: WKWebView
-        @EnvironmentObject private var webCoordinator: WebViewCoordinator
+        @EnvironmentObject private var wildMomentWebCoordinator: WildMomentWebViewCoordinator
         
         func makeUIView(context: Context) -> UIView {
             print("📱 Creating SimpleWebViewContainer")
@@ -308,7 +300,7 @@ struct RootView: View {
             ])
             
             // ВАЖНО: Добавляем свайп для возврата к предыдущему WebView
-            let swipeGesture = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSwipeBack))
+            let swipeGesture = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(WildMomentCoordinator.wildMomentHandleSwipeBack))
             swipeGesture.direction = .right
             containerView.addGestureRecognizer(swipeGesture)
             
@@ -320,23 +312,23 @@ struct RootView: View {
             // Ничего не обновляем
         }
         
-        func makeCoordinator() -> Coordinator {
-            Coordinator(webView: webView, webCoordinator: webCoordinator)
+        func makeCoordinator() -> WildMomentCoordinator {
+            WildMomentCoordinator(webView: webView, webCoordinator: wildMomentWebCoordinator)
         }
         
-        class Coordinator: NSObject {
+        class WildMomentCoordinator: NSObject {
             let webView: WKWebView
-            let webCoordinator: WebViewCoordinator
+            let webCoordinator: WildMomentWebViewCoordinator
             
-            init(webView: WKWebView, webCoordinator: WebViewCoordinator) {
+            init(webView: WKWebView, webCoordinator: WildMomentWebViewCoordinator) {
                 self.webView = webView
                 self.webCoordinator = webCoordinator
             }
             
-            @objc func handleSwipeBack() {
+            @objc func wildMomentHandleSwipeBack() {
                 print("👆 Swipe back gesture detected")
-                if webCoordinator.canGoBackToPreviousWebView() {
-                    webCoordinator.goBackToPreviousWebView()
+                if webCoordinator.wildMomentCanGoBackToPreviousWebView() {
+                    webCoordinator.wildMomentGoBackToPreviousWebView()
                 } else {
                     print("❌ Cannot go back - no previous WebView")
                 }
@@ -344,7 +336,7 @@ struct RootView: View {
         }
     }
     
-    private struct ChildWebViewRepresentable: UIViewRepresentable {
+    private struct WildMomentChildWebViewRepresentable: UIViewRepresentable {
         let webView: WKWebView
         
         func makeUIView(context: Context) -> UIView {
@@ -376,7 +368,7 @@ struct RootView: View {
         }
     }
     
-    private struct PaymentWebViewWrapper: Identifiable {
+    private struct WildMomentPaymentWebViewWrapper: Identifiable {
         let id: ObjectIdentifier
         let webView: WKWebView
         
@@ -386,25 +378,25 @@ struct RootView: View {
         }
     }
     
-    private struct PaymentWebViewContainer: View {
+    private struct WildMomentPaymentWebViewContainer: View {
         let webView: WKWebView
-        @EnvironmentObject private var webCoordinator: WebViewCoordinator
+        @EnvironmentObject private var wildMomentWebCoordinator: WildMomentWebViewCoordinator
         @Environment(\.dismiss) private var dismiss
-        @State private var dragOffset: CGSize = .zero
+        @State private var wildMomentDragOffset: CGSize = .zero
         
         var body: some View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                PaymentWebViewRepresentable(webView: webView)
+                WildMomentPaymentWebViewRepresentable(webView: webView)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .offset(x: dragOffset.width, y: 0)
+                    .offset(x: wildMomentDragOffset.width, y: 0)
             }
-            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: dragOffset as CGSize)
+            .animation(.spring(response: 0.5, dampingFraction: 0.8), value: wildMomentDragOffset as CGSize)
         }
     }
     
-    private struct PaymentWebViewRepresentable: UIViewRepresentable {
+    private struct WildMomentPaymentWebViewRepresentable: UIViewRepresentable {
         let webView: WKWebView
         
         func makeUIView(context: Context) -> UIView {

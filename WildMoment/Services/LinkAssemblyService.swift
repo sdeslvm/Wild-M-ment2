@@ -4,9 +4,9 @@ import os.log
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "WildMoment", category: "LinkAssembly")
 
-struct LinkAssemblyService {
-    func buildBackendURL(parts: RemoteLinkParts, payload: TrackingPayload) -> URL? {
-        let query = payload.toQueryString()
+struct WildMomentLinkAssemblyService {
+    func wildMomentBuildBackendURL(parts: WildMomentRemoteLinkParts, payload: WildMomentTrackingPayload) -> URL? {
+        let query = payload.wildMomentToQueryString()
         logger.info("[LinkAssembly] Query string (before base64): \(query)")
         
         guard let encoded = query.data(using: .utf8)?.base64EncodedString() else {
@@ -15,7 +15,7 @@ struct LinkAssemblyService {
         }
         logger.info("[LinkAssembly] Base64 encoded: \(encoded)")
         
-        let combinedPath = "\(parts.host)\(parts.path)"
+        let combinedPath = "\(parts.wildMomentHost)\(parts.wildMomentPath)"
         let urlString = "https://\(combinedPath)?data=\(encoded)"
         logger.info("[LinkAssembly] ✅ Built backend URL: \(urlString)")
         

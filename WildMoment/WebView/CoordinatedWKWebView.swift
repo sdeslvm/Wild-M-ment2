@@ -1,6 +1,6 @@
 
 import WebKit
 
-final class CoordinatedWKWebView: WKWebView {
-    weak var appCoordinator: WebViewCoordinator?
+final class WildMomentCoordinatedWKWebView: WKWebView {
+    weak var wildMomentAppCoordinator: WildMomentWebViewCoordinator?
 }

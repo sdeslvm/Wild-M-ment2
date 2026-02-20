@@ -2,38 +2,38 @@
 import Foundation
 import WebKit
 
-final class CookieStoreManager {
-    static let shared = CookieStoreManager()
+final class WildMomentCookieStoreManager {
+    static let shared = WildMomentCookieStoreManager()
 
-    private let dataStore: WKWebsiteDataStore
-    private let httpCookieStore: WKHTTPCookieStore
+    private let wildMomentDataStore: WKWebsiteDataStore
+    private let wildMomentHttpCookieStore: WKHTTPCookieStore
 
     private init() {
-        self.dataStore = WKWebsiteDataStore.default()
-        self.httpCookieStore = dataStore.httpCookieStore
+        self.wildMomentDataStore = WKWebsiteDataStore.default()
+        self.wildMomentHttpCookieStore = wildMomentDataStore.httpCookieStore
     }
 
-    func bootstrap() {
-        syncLegacyCookiesToWebKit()
+    func wildMomentBootstrap() {
+        wildMomentSyncLegacyCookiesToWebKit()
     }
 
-    func persistCookies() {
-        httpCookieStore.getAllCookies { cookies in
+    func wildMomentPersistCookies() {
+        wildMomentHttpCookieStore.getAllCookies { cookies in
             let storage = HTTPCookieStorage.shared
             cookies.forEach { storage.setCookie($0) }
         }
     }
 
-    private func syncLegacyCookiesToWebKit() {
+    private func wildMomentSyncLegacyCookiesToWebKit() {
         let storage = HTTPCookieStorage.shared
         let cookies = storage.cookies ?? []
         cookies.forEach { cookie in
-            httpCookieStore.setCookie(cookie)
+            wildMomentHttpCookieStore.setCookie(cookie)
         }
     }
 
-    func applyCookies(_ completion: @escaping () -> Void = {}) {
-        httpCookieStore.getAllCookies { cookies in
+    func wildMomentApplyCookies(_ completion: @escaping () -> Void = {}) {
+        wildMomentHttpCookieStore.getAllCookies { cookies in
             let storage = HTTPCookieStorage.shared
             cookies.forEach { storage.setCookie($0) }
             completion()

@@ -6,58 +6,58 @@ import WebKit
 import UIKit
 #endif
 
-final class WebViewCoordinator: NSObject, ObservableObject {
-    @Published var canGoBack = false
-    @Published var canGoForward = false
-    @Published var isLoading = false
-    @Published var currentURL: URL?
-    @Published var childWebView: WKWebView?
-    @Published var paymentWebView: WKWebView? // Второй WebView для платежных систем
+final class WildMomentWebViewCoordinator: NSObject, ObservableObject {
+    @Published var wildMomentCanGoBack = false
+    @Published var wildMomentCanGoForward = false
+    @Published var wildMomentIsLoading = false
+    @Published var wildMomentCurrentURL: URL?
+    @Published var wildMomentChildWebView: WKWebView?
+    @Published var wildMomentPaymentWebView: WKWebView? // Второй WebView для платежных систем
     
     // ВАЖНО: Стек WebView для навигации между popup'ами
-    private var webViewStack: [WKWebView] = []
+    private var wildMomentWebViewStack: [WKWebView] = []
 
-    var userAgent: String = "Version/17.2 Mobile/15E148 Safari/604.1"
-    weak var hostWebView: WKWebView?
+    var wildMomentUserAgent: String = "Version/17.2 Mobile/15E148 Safari/604.1"
+    weak var wildMomentHostWebView: WKWebView?
 
-    func updateState(from webView: WKWebView) {
+    func wildMomentUpdateState(from webView: WKWebView) {
         // Проверяем, что webView не nil и на главном потоке
         guard !Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
-                self?.updateState(from: webView)
+                self?.wildMomentUpdateState(from: webView)
             }
             return
         }
         
-        canGoBack = webView.canGoBack
-        canGoForward = webView.canGoForward
-        isLoading = webView.isLoading
-        currentURL = webView.url
+        wildMomentCanGoBack = webView.canGoBack
+        wildMomentCanGoForward = webView.canGoForward
+        wildMomentIsLoading = webView.isLoading
+        wildMomentCurrentURL = webView.url
     }
 
-    func pushChild(with configuration: WKWebViewConfiguration) -> WKWebView {
+    func wildMomentPushChild(with configuration: WKWebViewConfiguration) -> WKWebView {
         // НЕ очищаем старый дочерний WebView - пусть работают несколько окон
         print("📱 Creating new child WebView (keeping existing ones)")
         
         // ВАЖНО: Добавляем текущий WebView в стек если он есть
-        if let currentChild = childWebView {
-            webViewStack.append(currentChild)
-            print("📚 Added current child WebView to stack, stack size: \(webViewStack.count)")
-        } else if let hostWebView = hostWebView {
+        if let currentChild = wildMomentChildWebView {
+            wildMomentWebViewStack.append(currentChild)
+            print("📚 Added current child WebView to stack, stack size: \(wildMomentWebViewStack.count)")
+        } else if let hostWebView = wildMomentHostWebView {
             // ВАЖНО: Если нет дочернего, добавляем основной WebView в стек
-            webViewStack.append(hostWebView)
-            print("📚 Added host WebView to stack, stack size: \(webViewStack.count)")
+            wildMomentWebViewStack.append(hostWebView)
+            print("📚 Added host WebView to stack, stack size: \(wildMomentWebViewStack.count)")
         }
         
         // ВАЖНО: Создаем WebView с размером полного экрана
         let screenBounds = UIScreen.main.bounds
         print("🔍 Screen bounds: \(screenBounds)")
         let webView = WKWebView(frame: screenBounds, configuration: configuration)
-        webView.customUserAgent = userAgent
+        webView.customUserAgent = wildMomentUserAgent
         
         // ВАЖНО: Устанавливаем как текущий child WebView для отображения на главном потоке
         DispatchQueue.main.async {
-            self.childWebView = webView
+            self.wildMomentChildWebView = webView
             print("✅ Created new child WebView and set as current on main thread")
             print("🔍 Final WebView frame: \(webView.frame)")
             
@@ -71,9 +71,9 @@ final class WebViewCoordinator: NSObject, ObservableObject {
         return webView
     }
     
-    func pushPayment(with configuration: WKWebViewConfiguration) -> WKWebView {
+    func wildMomentPushPayment(with configuration: WKWebViewConfiguration) -> WKWebView {
         // Если уже есть платежный WebView, очищаем его перед созданием нового
-        if let existing = paymentWebView {
+        if let existing = wildMomentPaymentWebView {
             print("⚠️ Payment WebView already exists, cleaning up...")
             DispatchQueue.main.async {
                 existing.stopLoading()
@@ -83,17 +83,17 @@ final class WebViewCoordinator: NSObject, ObservableObject {
         }
         
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.customUserAgent = userAgent
+        webView.customUserAgent = wildMomentUserAgent
         
         // Устанавливаем синхронно, так как метод должен вернуть webView сразу
-        paymentWebView = webView
+        wildMomentPaymentWebView = webView
         print("✅ Created new payment WebView")
         return webView
     }
     
-    func setPaymentWebView(_ webView: WKWebView) {
+    func wildMomentSetPaymentWebView(_ webView: WKWebView) {
         // Очищаем предыдущий платежный WebView если есть
-        if let existing = paymentWebView {
+        if let existing = wildMomentPaymentWebView {
             print("⚠️ Payment WebView already exists, cleaning up...")
             DispatchQueue.main.async {
                 existing.stopLoading()
@@ -102,12 +102,12 @@ final class WebViewCoordinator: NSObject, ObservableObject {
             }
         }
         
-        paymentWebView = webView
+        wildMomentPaymentWebView = webView
         print("✅ Set new payment WebView")
     }
     
-    func closePaymentWebView() {
-        guard let payment = paymentWebView else { 
+    func wildMomentClosePaymentWebView() {
+        guard let payment = wildMomentPaymentWebView else { 
             print("⚠️ No payment WebView to close")
             return 
         }
@@ -122,25 +122,25 @@ final class WebViewCoordinator: NSObject, ObservableObject {
             payment.navigationDelegate = nil
             payment.uiDelegate = nil
             
-            self.paymentWebView = nil
+            self.wildMomentPaymentWebView = nil
             print("✅ Payment WebView cleaned up")
         }
     }
 
-    func goBackToPreviousWebView() -> Bool {
+    func wildMomentGoBackToPreviousWebView() -> Bool {
         print("🔙 Attempting to go back to previous WebView")
-        print("📚 Current stack size: \(webViewStack.count)")
+        print("📚 Current stack size: \(wildMomentWebViewStack.count)")
         
-        guard !webViewStack.isEmpty else {
+        guard !wildMomentWebViewStack.isEmpty else {
             print("❌ No previous WebView in stack")
             return false
         }
         
-        let previousWebView = webViewStack.removeLast()
+        let previousWebView = wildMomentWebViewStack.removeLast()
         print("🔙 Returning to previous WebView: \(previousWebView.hashValue)")
         
         DispatchQueue.main.async {
-            self.childWebView = previousWebView
+            self.wildMomentChildWebView = previousWebView
             self.objectWillChange.send()
             print("✅ Returned to previous WebView")
         }
@@ -148,12 +148,12 @@ final class WebViewCoordinator: NSObject, ObservableObject {
         return true
     }
     
-    func canGoBackToPreviousWebView() -> Bool {
-        return !webViewStack.isEmpty
+    func wildMomentCanGoBackToPreviousWebView() -> Bool {
+        return !wildMomentWebViewStack.isEmpty
     }
     
-    func closeChild() {
-        guard let child = childWebView else { 
+    func wildMomentCloseChild() {
+        guard let child = wildMomentChildWebView else { 
             print("⚠️ No child WebView to close")
             return 
         }
@@ -168,27 +168,27 @@ final class WebViewCoordinator: NSObject, ObservableObject {
             child.navigationDelegate = nil
             child.uiDelegate = nil
             
-            self.childWebView = nil
+            self.wildMomentChildWebView = nil
             print("✅ Child WebView cleaned up")
         }
     }
 
-    func goBack() {
-        if let payment = paymentWebView, payment.canGoBack {
+    func wildMomentGoBack() {
+        if let payment = wildMomentPaymentWebView, payment.canGoBack {
             payment.goBack()
-        } else if let child = childWebView, child.canGoBack {
+        } else if let child = wildMomentChildWebView, child.canGoBack {
             child.goBack()
-        } else if let host = hostWebView, host.canGoBack {
+        } else if let host = wildMomentHostWebView, host.canGoBack {
             host.goBack()
         }
     }
 
-    func goForward() {
-        if let payment = paymentWebView, payment.canGoForward {
+    func wildMomentGoForward() {
+        if let payment = wildMomentPaymentWebView, payment.canGoForward {
             payment.goForward()
-        } else if let child = childWebView, child.canGoForward {
+        } else if let child = wildMomentChildWebView, child.canGoForward {
             child.goForward()
-        } else if let host = hostWebView, host.canGoForward {
+        } else if let host = wildMomentHostWebView, host.canGoForward {
             host.goForward()
         }
     }

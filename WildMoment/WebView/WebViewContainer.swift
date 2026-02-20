@@ -5,9 +5,9 @@ import WebKit
 import UIKit
 import UniformTypeIdentifiers
 
-struct WebViewContainer: UIViewRepresentable {
-    @EnvironmentObject private var coordinator: WebViewCoordinator
-    let url: URL
+struct WildMomentWebViewContainer: UIViewRepresentable {
+    @EnvironmentObject private var wildMomentCoordinator: WildMomentWebViewCoordinator
+    let wildMomentUrl: URL
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
@@ -23,8 +23,8 @@ struct WebViewContainer: UIViewRepresentable {
         
         // НЕ добавляем скрипт сюда - только для платежных WebView
         
-        let webView = CoordinatedWKWebView(frame: .zero, configuration: configuration)
-        webView.customUserAgent = coordinator.userAgent
+        let webView = WildMomentCoordinatedWKWebView(frame: .zero, configuration: configuration)
+        webView.customUserAgent = wildMomentCoordinator.wildMomentUserAgent
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
         
@@ -49,51 +49,51 @@ struct WebViewContainer: UIViewRepresentable {
         
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
-        webView.appCoordinator = coordinator
+        webView.wildMomentAppCoordinator = wildMomentCoordinator
         
-        context.coordinator.attach(webView: webView, appCoordinator: coordinator)
-        webView.load(URLRequest(url: url))
+        context.coordinator.wildMomentAttach(webView: webView, appCoordinator: wildMomentCoordinator)
+        webView.load(URLRequest(url: wildMomentUrl))
         return webView
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        coordinator.updateState(from: uiView)
+        wildMomentCoordinator.wildMomentUpdateState(from: uiView)
     }
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
+    func makeCoordinator() -> WildMomentCoordinator {
+        WildMomentCoordinator()
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate {
-        private weak var webView: WKWebView?
-        private weak var appCoordinator: WebViewCoordinator?
-        private var pendingFileUploadCompletion: (([URL]?) -> Void)?
+    final class WildMomentCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIDocumentPickerDelegate {
+        private weak var wildMomentWebView: WKWebView?
+        private weak var wildMomentAppCoordinator: WildMomentWebViewCoordinator?
+        private var wildMomentPendingFileUploadCompletion: (([URL]?) -> Void)?
 
-        func attach(webView: WKWebView, appCoordinator: WebViewCoordinator) {
-            self.webView = webView
-            self.appCoordinator = appCoordinator
-            appCoordinator.hostWebView = webView
+        func wildMomentAttach(webView: WKWebView, appCoordinator: WildMomentWebViewCoordinator) {
+            self.wildMomentWebView = webView
+            self.wildMomentAppCoordinator = appCoordinator
+            appCoordinator.wildMomentHostWebView = webView
         }
 
         // MARK: - WKNavigationDelegate
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            appCoordinator?.updateState(from: webView)
+            wildMomentAppCoordinator?.wildMomentUpdateState(from: webView)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("✅ WebView didFinish navigation for: \(webView.url?.absoluteString ?? "unknown")")
             print("✅ WebView instance: \(webView.hashValue)")
             
-            if webView === appCoordinator?.paymentWebView {
+            if webView === wildMomentAppCoordinator?.wildMomentPaymentWebView {
                 print("✅ Payment WebView finished loading")
-            } else if webView === appCoordinator?.childWebView {
+            } else if webView === wildMomentAppCoordinator?.wildMomentChildWebView {
                 print("✅ Child WebView finished loading")
             } else {
                 print("✅ Main WebView finished loading")
             }
             
-            appCoordinator?.updateState(from: webView)
+            wildMomentAppCoordinator?.wildMomentUpdateState(from: webView)
         }
         
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -105,12 +105,12 @@ struct WebViewContainer: UIViewRepresentable {
             let currentURL = webView.url
             
             // Обновляем состояние с защитой от nil
-            if let coordinator = appCoordinator {
-                coordinator.updateState(from: webView)
+            if let coordinator = wildMomentAppCoordinator {
+                coordinator.wildMomentUpdateState(from: webView)
             }
             
             // Если это ошибка загрузки платежной системы, НЕ открываем в Safari, а просто логируем
-            if let url = currentURL, isPaymentURL(url) {
+            if let url = currentURL, wildMomentIsPaymentURL(url) {
                 print("⚠️ Payment page failed to load, keeping WebView open: \(url)")
                 print("⚠️ Error: \(error.localizedDescription)")
                 return // НЕ закрываем WebView
@@ -133,12 +133,12 @@ struct WebViewContainer: UIViewRepresentable {
             let currentURL = webView.url
             
             // Обновляем состояние с защитой от nil
-            if let coordinator = appCoordinator {
-                coordinator.updateState(from: webView)
+            if let coordinator = wildMomentAppCoordinator {
+                coordinator.wildMomentUpdateState(from: webView)
             }
             
             // Если это ошибка загрузки платежной системы, НЕ открываем в Safari, а просто логируем
-            if let url = currentURL, isPaymentURL(url) {
+            if let url = currentURL, wildMomentIsPaymentURL(url) {
                 print("⚠️ Payment page failed to load (provisional), keeping WebView open: \(url)")
                 print("⚠️ Error: \(error.localizedDescription)")
                 return // НЕ закрываем WebView
@@ -159,7 +159,7 @@ struct WebViewContainer: UIViewRepresentable {
             }
             
             print("🔍 Navigation action to: \(url)")
-            print("🔍 Current WebView: Payment=\(webView === appCoordinator?.paymentWebView), Child=\(webView === appCoordinator?.childWebView)")
+            print("🔍 Current WebView: Payment=\(webView === wildMomentAppCoordinator?.wildMomentPaymentWebView), Child=\(webView === wildMomentAppCoordinator?.wildMomentChildWebView)")
             
             // Разрешаем все навигации внутри WebView
             print("📄 Allowing navigation: \(url)")
@@ -172,8 +172,8 @@ struct WebViewContainer: UIViewRepresentable {
             print("🚀 createWebViewWith called!")
             print("🔍 Parent WebView URL: \(webView.url?.absoluteString ?? "unknown")")
             print("🔍 Parent WebView instance: \(webView.hashValue)")
-            print("🔍 Is parent child WebView: \(self.appCoordinator?.childWebView == webView)")
-            print("🔍 Is parent payment WebView: \(self.appCoordinator?.paymentWebView == webView)")
+            print("🔍 Is parent child WebView: \(self.wildMomentAppCoordinator?.wildMomentChildWebView == webView)")
+            print("🔍 Is parent payment WebView: \(self.wildMomentAppCoordinator?.wildMomentPaymentWebView == webView)")
             
             guard let url = navigationAction.request.url else {
                 print("❌ No URL in navigation action")
@@ -183,7 +183,7 @@ struct WebViewContainer: UIViewRepresentable {
             print("🔗 New window request for URL: \(url)")
             
             // Проверяем, является ли URL платежным
-            let isPayment = isPaymentURL(url)
+            let isPayment = wildMomentIsPaymentURL(url)
             print("💰 Is payment URL: \(isPayment)")
             
             // Блокируем создание WebView для /loading страниц
@@ -195,13 +195,13 @@ struct WebViewContainer: UIViewRepresentable {
             // Создаем обычный child WebView для popup окон
             print("📱 Creating child WebView for popup: \(url)")
             
-            guard let appCoordinator = self.appCoordinator else {
+            guard let appCoordinator = self.wildMomentAppCoordinator else {
                 print("❌ No appCoordinator available")
                 return nil
             }
             
             // НИКАКИХ ОГРАНИЧЕНИЙ - как обычный браузер
-            let child = appCoordinator.pushChild(with: configuration)
+            let child = appCoordinator.wildMomentPushChild(with: configuration)
             child.navigationDelegate = self
             child.uiDelegate = self  // ВАЖНО: child WebView тоже должен уметь создавать popup!
             
@@ -243,7 +243,7 @@ struct WebViewContainer: UIViewRepresentable {
             return child
         }
         
-        private func createPaymentWebView(for url: URL, with configuration: WKWebViewConfiguration, appCoordinator: WebViewCoordinator?) -> WKWebView? {
+        private func wildMomentCreatePaymentWebView(for url: URL, with configuration: WKWebViewConfiguration, appCoordinator: WildMomentWebViewCoordinator?) -> WKWebView? {
             print("💳 Creating ULTIMATE payment WebView for: \(url)")
             
             // Используем переданную конфигурацию, а не создаем новую
@@ -427,7 +427,7 @@ struct WebViewContainer: UIViewRepresentable {
             paymentWebView.uiDelegate = self
             
             // Сохраняем как платежный WebView через координатор
-            appCoordinator?.setPaymentWebView(paymentWebView)
+            appCoordinator?.wildMomentSetPaymentWebView(paymentWebView)
             
             // Загружаем URL
             let request = URLRequest(url: url)
@@ -439,12 +439,12 @@ struct WebViewContainer: UIViewRepresentable {
 
         func webViewDidClose(_ webView: WKWebView) {
             print("🔒 webViewDidClose called for: \(webView.hashValue)")
-            print("🔒 Is payment WebView: \(webView === appCoordinator?.paymentWebView)")
-            print("🔒 Is child WebView: \(webView === appCoordinator?.childWebView)")
+            print("🔒 Is payment WebView: \(webView === wildMomentAppCoordinator?.wildMomentPaymentWebView)")
+            print("🔒 Is child WebView: \(webView === wildMomentAppCoordinator?.wildMomentChildWebView)")
             print("🔒 WebView URL: \(webView.url?.absoluteString ?? "unknown")")
             
             // НЕ закрываем child WebView автоматически - даем пользователю решить
-            if webView === appCoordinator?.childWebView {
+            if webView === wildMomentAppCoordinator?.wildMomentChildWebView {
                 print("⚠️ Child WebView requested close, but keeping it open for user")
                 return // НЕ закрываем child WebView
             }
@@ -452,9 +452,9 @@ struct WebViewContainer: UIViewRepresentable {
             // Добавляем задержку чтобы избежать конфликтов с клавиатурой
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 // Закрываем ТОЛЬКО платежный WebView
-                if webView === self.appCoordinator?.paymentWebView {
+                if webView === self.wildMomentAppCoordinator?.wildMomentPaymentWebView {
                     print("🔒 Closing payment WebView from webViewDidClose")
-                    self.appCoordinator?.closePaymentWebView()
+                    self.wildMomentAppCoordinator?.wildMomentClosePaymentWebView()
                     return
                 }
             }
@@ -477,7 +477,7 @@ struct WebViewContainer: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
-            presentConfirm(title: "Confirmation", message: message, completion: completionHandler)
+            wildMomentPresentConfirm(title: "Confirmation", message: message, completion: completionHandler)
         }
 
         func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
@@ -504,28 +504,28 @@ struct WebViewContainer: UIViewRepresentable {
         }
         
         @objc func webView(_ webView: WKWebView, runOpenPanelWith parameters: Any, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping ([URL]?) -> Void) {
-            pendingFileUploadCompletion = completionHandler
+            wildMomentPendingFileUploadCompletion = completionHandler
 
             let alert = UIAlertController(title: "Upload file", message: nil, preferredStyle: .actionSheet)
             alert.addAction(UIAlertAction(title: "Take photo/video", style: .default, handler: { [weak self] _ in
-                self?.presentCamera()
+                self?.wildMomentPresentCamera()
             }))
             alert.addAction(UIAlertAction(title: "Choose from Files", style: .default, handler: { [weak self] _ in
-                self?.presentDocumentPicker()
+                self?.wildMomentPresentDocumentPicker()
             }))
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { [weak self] _ in
-                self?.pendingFileUploadCompletion?(nil)
-                self?.pendingFileUploadCompletion = nil
+                self?.wildMomentPendingFileUploadCompletion?(nil)
+                self?.wildMomentPendingFileUploadCompletion = nil
             }))
 
-            presentController(alert)
+            wildMomentPresentController(alert)
         }
 
         // MARK: - Presentation Helpers
 
-        private func presentCamera() {
+        private func wildMomentPresentCamera() {
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-                presentDocumentPicker()
+                wildMomentPresentDocumentPicker()
                 return
             }
 
@@ -533,29 +533,29 @@ struct WebViewContainer: UIViewRepresentable {
             picker.sourceType = .camera
             picker.mediaTypes = ["public.image", "public.movie"]
             picker.delegate = self
-            presentController(picker)
+            wildMomentPresentController(picker)
         }
 
-        private func presentDocumentPicker() {
+        private func wildMomentPresentDocumentPicker() {
             let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data, .image, .movie], asCopy: true)
             picker.delegate = self
-            presentController(picker)
+            wildMomentPresentController(picker)
         }
 
-        private func presentAlert(title: String, message: String, completion: @escaping () -> Void) {
+        private func wildMomentPresentAlert(title: String, message: String, completion: @escaping () -> Void) {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in completion() }))
-            presentController(alert)
+            wildMomentPresentController(alert)
         }
 
-        private func presentConfirm(title: String, message: String, completion: @escaping (Bool) -> Void) {
+        private func wildMomentPresentConfirm(title: String, message: String, completion: @escaping (Bool) -> Void) {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in completion(false) }))
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in completion(true) }))
-            presentController(alert)
+            wildMomentPresentController(alert)
         }
 
-        private func presentPrompt(title: String, defaultText: String?, completion: @escaping (String?) -> Void) {
+        private func wildMomentPresentPrompt(title: String, defaultText: String?, completion: @escaping (String?) -> Void) {
             let alert = UIAlertController(title: title, message: nil, preferredStyle: .alert)
             alert.addTextField { textField in
                 textField.text = defaultText
@@ -564,10 +564,10 @@ struct WebViewContainer: UIViewRepresentable {
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { [weak alert] _ in
                 completion(alert?.textFields?.first?.text)
             }))
-            presentController(alert)
+            wildMomentPresentController(alert)
         }
 
-        private func presentController(_ controller: UIViewController) {
+        private func wildMomentPresentController(_ controller: UIViewController) {
             DispatchQueue.main.async {
                 guard let root = UIApplication.shared.connectedScenes
                     .compactMap({ $0 as? UIWindowScene })
@@ -582,20 +582,20 @@ struct WebViewContainer: UIViewRepresentable {
         // MARK: - UIDocumentPickerDelegate
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            pendingFileUploadCompletion?(nil)
-            pendingFileUploadCompletion = nil
+            wildMomentPendingFileUploadCompletion?(nil)
+            wildMomentPendingFileUploadCompletion = nil
         }
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            pendingFileUploadCompletion?(urls)
-            pendingFileUploadCompletion = nil
+            wildMomentPendingFileUploadCompletion?(urls)
+            wildMomentPendingFileUploadCompletion = nil
         }
 
         // MARK: - UIImagePickerControllerDelegate
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            pendingFileUploadCompletion?(nil)
-            pendingFileUploadCompletion = nil
+            wildMomentPendingFileUploadCompletion?(nil)
+            wildMomentPendingFileUploadCompletion = nil
             picker.dismiss(animated: true)
         }
 
@@ -603,21 +603,21 @@ struct WebViewContainer: UIViewRepresentable {
             var tempURL: URL?
             if let image = info[.originalImage] as? UIImage,
                let data = image.jpegData(compressionQuality: 0.9) {
-                tempURL = saveTemporary(data: data, fileExtension: "jpg")
+                tempURL = wildMomentSaveTemporary(data: data, fileExtension: "jpg")
             } else if let videoURL = info[.mediaURL] as? URL {
                 tempURL = videoURL
             }
 
             if let tempURL {
-                pendingFileUploadCompletion?([tempURL])
+                wildMomentPendingFileUploadCompletion?([tempURL])
             } else {
-                pendingFileUploadCompletion?(nil)
+                wildMomentPendingFileUploadCompletion?(nil)
             }
-            pendingFileUploadCompletion = nil
+            wildMomentPendingFileUploadCompletion = nil
             picker.dismiss(animated: true)
         }
 
-        private func saveTemporary(data: Data, fileExtension: String) -> URL? {
+        private func wildMomentSaveTemporary(data: Data, fileExtension: String) -> URL? {
             let tempDir = FileManager.default.temporaryDirectory
             let fileURL = tempDir.appendingPathComponent(UUID().uuidString).appendingPathExtension(fileExtension)
             do {
@@ -630,7 +630,7 @@ struct WebViewContainer: UIViewRepresentable {
         
         // MARK: - Helper Methods
         
-        private func isPaymentURL(_ url: URL) -> Bool {
+        private func wildMomentIsPaymentURL(_ url: URL) -> Bool {
             let host = url.host?.lowercased() ?? ""
             let path = url.path.lowercased()
             let absoluteString = url.absoluteString.lowercased()
@@ -696,7 +696,7 @@ struct WebViewContainer: UIViewRepresentable {
                     completionHandler()
                 })
                 
-                if let topController = UIApplication.shared.topViewController() {
+                if let topController = UIApplication.shared.wildMomentTopViewController() {
                     topController.present(alert, animated: true)
                 } else {
                     completionHandler()

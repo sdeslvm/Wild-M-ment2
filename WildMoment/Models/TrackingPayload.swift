@@ -1,26 +1,26 @@
 
 import Foundation
 
-struct TrackingPayload: Sendable {
-    let appsFlyerID: String
-    let appInstanceID: String
-    let uuid: String
-    let osVersion: String
-    let deviceModel: String
-    let bundleID: String
-    let fcmToken: String
-    let attToken: String
+struct WildMomentTrackingPayload: Sendable {
+    let wildMomentAppsFlyerID: String
+    let wildMomentAppInstanceID: String
+    let wildMomentUuid: String
+    let wildMomentOsVersion: String
+    let wildMomentDeviceModel: String
+    let wildMomentBundleID: String
+    let wildMomentFcmToken: String
+    let wildMomentAttToken: String
 
-    func toQueryString() -> String {
+    func wildMomentToQueryString() -> String {
         [
-            "appsflyer_id=\(appsFlyerID)",
-            "app_instance_id=\(appInstanceID)",
-            "uid=\(uuid)",
-            "osVersion=\(osVersion)",
-            "devModel=\(deviceModel)",
-            "bundle=\(bundleID)",
-            "fcm_token=\(fcmToken)",
-            "att_token=\(attToken)"
+            "appsflyer_id=\(wildMomentAppsFlyerID)",
+            "app_instance_id=\(wildMomentAppInstanceID)",
+            "uid=\(wildMomentUuid)",
+            "osVersion=\(wildMomentOsVersion)",
+            "devModel=\(wildMomentDeviceModel)",
+            "bundle=\(wildMomentBundleID)",
+            "fcm_token=\(wildMomentFcmToken)",
+            "att_token=\(wildMomentAttToken)"
         ]
         .joined(separator: "&")
     }

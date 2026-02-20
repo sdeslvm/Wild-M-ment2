@@ -3,40 +3,40 @@ import Foundation
 import Combine
 
 @MainActor
-final class RootViewModel: ObservableObject {
-    @Published private(set) var state: LaunchState = .loading
-    @Published var errorMessage: String?
+final class WildMomentRootViewModel: ObservableObject {
+    @Published private(set) var wildMomentState: WildMomentLaunchState = .loading
+    @Published var wildMomentErrorMessage: String?
 
-    private let launchService: LaunchService
+    private let wildMomentLaunchService: WildMomentLaunchService
 
-    init(launchService: LaunchService) {
-        self.launchService = launchService
-        state = mapOutcome(launchService.initialOutcome())
+    init(launchService: WildMomentLaunchService) {
+        self.wildMomentLaunchService = launchService
+        wildMomentState = wildMomentMapOutcome(launchService.wildMomentInitialOutcome())
     }
 
-    func start() {
+    func wildMomentStart() {
         Task {
-            await executeResolve()
+            await wildMomentExecuteResolve()
         }
     }
 
-    func retry() {
-        errorMessage = nil
-        state = .loading
-        start()
+    func wildMomentRetry() {
+        wildMomentErrorMessage = nil
+        wildMomentState = .loading
+        wildMomentStart()
     }
 
-    private func executeResolve() async {
-        let outcome = await launchService.resolveOutcome()
+    private func wildMomentExecuteResolve() async {
+        let outcome = await wildMomentLaunchService.wildMomentResolveOutcome()
         await MainActor.run {
-            self.state = self.mapOutcome(outcome)
+            self.wildMomentState = self.wildMomentMapOutcome(outcome)
             if case .showStub = outcome {
-                self.errorMessage = "Failed to obtain link. Showing a placeholder."
+                self.wildMomentErrorMessage = "Failed to obtain link. Showing a placeholder."
             }
         }
     }
 
-    private func mapOutcome(_ outcome: LaunchOutcome) -> LaunchState {
+    private func wildMomentMapOutcome(_ outcome: WildMomentLaunchOutcome) -> WildMomentLaunchState {
         switch outcome {
         case .loading:
             return .loading

@@ -3,13 +3,13 @@ import SwiftUI
 
 @main
 struct WildMomentApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    private let dependencies = AppDependencies()
+    @UIApplicationDelegateAdaptor(WildMomentAppDelegate.self) private var wildMomentAppDelegate
+    private let wildMomentDependencies = WildMomentAppDependencies()
     
     var body: some Scene {
         WindowGroup {
-            RootView(viewModel: RootViewModel(launchService: dependencies.launchService))
-                .environmentObject(dependencies.webViewCoordinator)
+            WildMomentRootView(wildMomentViewModel: WildMomentRootViewModel(launchService: wildMomentDependencies.wildMomentLaunchService))
+                .environmentObject(wildMomentDependencies.wildMomentWebViewCoordinator)
         }
     }
 }

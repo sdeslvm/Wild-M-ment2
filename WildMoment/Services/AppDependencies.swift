@@ -2,39 +2,39 @@
 
 import Foundation
 
-struct AppDependencies {
+struct WildMomentAppDependencies {
     // MARK: - Dependencies
-    let persistenceService: PersistenceService
-    let trackingService: TrackingService
-    let remoteConfigService: FirebaseRealtimeService
-    let backendClient: BackendClient
-    let linkAssemblyService: LinkAssemblyService
-    let launchService: LaunchService
-    let webViewCoordinator: WebViewCoordinator
+    let wildMomentPersistenceService: WildMomentPersistenceService
+    let wildMomentTrackingService: WildMomentTrackingService
+    let wildMomentRemoteConfigService: WildMomentFirebaseRealtimeService
+    let wildMomentBackendClient: WildMomentBackendClient
+    let wildMomentLinkAssemblyService: WildMomentLinkAssemblyService
+    let wildMomentLaunchService: WildMomentLaunchService
+    let wildMomentWebViewCoordinator: WildMomentWebViewCoordinator
 
     init() {
-        let persistenceService = PersistenceService()
-        let cookieStore = CookieStoreManager.shared
-        let pushStore = PushTokenStore.shared
+        let wildMomentPersistenceService = WildMomentPersistenceService()
+        let wildMomentCookieStore = WildMomentCookieStoreManager.shared
+        let wildMomentPushStore = WildMomentPushTokenStore.shared
 
         #if targetEnvironment(simulator)
-        persistenceService.clear()
+        wildMomentPersistenceService.wildMomentClear()
         #endif
 
-        self.persistenceService = persistenceService
-        self.trackingService = TrackingService(persistence: persistenceService,
-                                               pushTokenStore: pushStore)
-        self.remoteConfigService = FirebaseRealtimeService()
-        self.backendClient = BackendClient()
-        self.linkAssemblyService = LinkAssemblyService()
-        self.launchService = LaunchService(
-            persistence: persistenceService,
-            trackingService: trackingService,
-            remoteConfigService: remoteConfigService,
-            backendClient: backendClient,
-            linkAssemblyService: linkAssemblyService,
-            cookieStore: cookieStore
+        self.wildMomentPersistenceService = wildMomentPersistenceService
+        self.wildMomentTrackingService = WildMomentTrackingService(persistence: wildMomentPersistenceService,
+                                               pushTokenStore: wildMomentPushStore)
+        self.wildMomentRemoteConfigService = WildMomentFirebaseRealtimeService()
+        self.wildMomentBackendClient = WildMomentBackendClient()
+        self.wildMomentLinkAssemblyService = WildMomentLinkAssemblyService()
+        self.wildMomentLaunchService = WildMomentLaunchService(
+            persistence: wildMomentPersistenceService,
+            trackingService: wildMomentTrackingService,
+            remoteConfigService: wildMomentRemoteConfigService,
+            backendClient: wildMomentBackendClient,
+            linkAssemblyService: wildMomentLinkAssemblyService,
+            cookieStore: wildMomentCookieStore
         )
-        self.webViewCoordinator = WebViewCoordinator()
+        self.wildMomentWebViewCoordinator = WildMomentWebViewCoordinator()
     }
 }

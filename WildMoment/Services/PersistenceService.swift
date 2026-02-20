@@ -1,35 +1,35 @@
 
 import Foundation
 
-final class PersistenceService: @unchecked Sendable {
-    private enum Keys {
-        static let cachedURL = "zm_cached_final_url"
-        static let shouldShowStub = "zm_cached_stub_flag"
+final class WildMomentPersistenceService: @unchecked Sendable {
+    private enum WildMomentKeys {
+        static let wildMomentCachedURL = "zm_cached_final_url"
+        static let wildMomentShouldShowStub = "zm_cached_stub_flag"
     }
 
-    private let defaults: UserDefaults
+    private let wildMomentDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
-        self.defaults = userDefaults
+        self.wildMomentDefaults = userDefaults
     }
 
-    var cachedURL: URL? {
+    var wildMomentCachedURL: URL? {
         get {
-            guard let urlString = defaults.string(forKey: Keys.cachedURL) else { return nil }
+            guard let urlString = wildMomentDefaults.string(forKey: WildMomentKeys.wildMomentCachedURL) else { return nil }
             return URL(string: urlString)
         }
         set {
-            defaults.set(newValue?.absoluteString, forKey: Keys.cachedURL)
+            wildMomentDefaults.set(newValue?.absoluteString, forKey: WildMomentKeys.wildMomentCachedURL)
         }
     }
 
-    var shouldShowStub: Bool {
-        get { defaults.bool(forKey: Keys.shouldShowStub) }
-        set { defaults.set(newValue, forKey: Keys.shouldShowStub) }
+    var wildMomentShouldShowStub: Bool {
+        get { wildMomentDefaults.bool(forKey: WildMomentKeys.wildMomentShouldShowStub) }
+        set { wildMomentDefaults.set(newValue, forKey: WildMomentKeys.wildMomentShouldShowStub) }
     }
 
-    func clear() {
-        defaults.removeObject(forKey: Keys.cachedURL)
-        defaults.removeObject(forKey: Keys.shouldShowStub)
+    func wildMomentClear() {
+        wildMomentDefaults.removeObject(forKey: WildMomentKeys.wildMomentCachedURL)
+        wildMomentDefaults.removeObject(forKey: WildMomentKeys.wildMomentShouldShowStub)
     }
 }
